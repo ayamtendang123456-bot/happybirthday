@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Selamat Ulang Tahun Dini Nuranisa — Perayaan penuh cinta, bunga, dan keindahan.">
+    <title>Happy Birthday Dini Nuranisa 🌸</title>
+    <link rel="shortcut icon" href="./icon.png" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Nunito:wght@300;400;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="main.css">
+</head>
+<body class="intro-playing">
+
+    <!-- =============================================
+         FLOWER CURTAIN INTRO
+         ============================================= -->
+    <div id="flower-intro" aria-hidden="true">
+        <div class="flower-curtain flower-curtain-left"></div>
+        <div class="flower-curtain flower-curtain-right"></div>
+        <div class="curtain-glow"></div>
+    </div>
+
+    <!-- =============================================
+         BACKGROUND GREETING WATERMARK
+         ============================================= -->
+    <div id="greeting-overlay" aria-hidden="true"></div>
+
+    <!-- =============================================
+         3D PHOTO CAROUSEL
+         ============================================= -->
+    <div id="drag-container">
+        <div id="spin-container">
+            <img src="./images/r1.jpeg" alt="Foto 1">
+            <img src="./images/r2.jpeg" alt="Foto 2">
+            <img src="./images/r3.jpeg" alt="Foto 3">
+            <img src="./images/r4.jpeg" alt="Foto 4">
+            <img src="./images/r5.jpeg" alt="Foto 5">
+            <img src="./images/r1.jpeg" alt="Foto 6">
+            <img src="./images/r2.jpeg" alt="Foto 7">
+            <img src="./images/r3.jpeg" alt="Foto 8">
+            <img src="./images/r4.jpeg" alt="Foto 9">
+            <img src="./images/r5.jpeg" alt="Foto 10">
+            <p>Happy Birthday Dini Nuranisa 🌸</p>
+        </div>
+        <div id="ground"></div>
+    </div>
+
+    <!-- =============================================
+         MUSIC
+         ============================================= -->
+    <div id="music-container"></div>
+
+    <audio id="myAudio" muted autoplay playsinline loop>
+        <source src="music/setlove.mp3" type="audio/mpeg">
+        <source src="music/setlove.ogg" type="audio/ogg">
+    </audio>
+
+    <!-- Tombol Play/Pause Musik -->
+    <button id="music-toggle-btn" aria-label="Play/Pause Musik" title="Play/Pause Musik">
+        <span id="music-btn-icon">▶</span>
+        <span id="music-btn-label">Putar</span>
+    </button>
+
+    <style>
+        #music-toggle-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(255,110,180,0.85), rgba(255,64,136,0.85));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 11px 20px;
+            font-size: 14px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255,64,136,0.45);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: btnAppear 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        #music-toggle-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 28px rgba(255,64,136,0.65);
+        }
+        #music-toggle-btn:active {
+            transform: scale(0.96);
+        }
+        #music-btn-icon {
+            font-size: 16px;
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        #music-toggle-btn.playing #music-btn-icon {
+            animation: iconSpin 0.4s ease;
+        }
+        @keyframes btnAppear {
+            from { opacity: 0; transform: translateY(20px) scale(0.8); }
+            to   { opacity: 1; transform: translateY(0)   scale(1);   }
+        }
+        @keyframes iconSpin {
+            0%   { transform: rotate(0deg);   }
+            50%  { transform: rotate(180deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+
+    <!-- =============================================
+         WEBGL HEART SHADER CANVAS
+         ============================================= -->
+    <div id="canva">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- =============================================
+         PARTICLE SYSTEM CANVAS (hearts, confetti, sparkles)
+         ============================================= -->
+    <canvas id="particles-canvas" aria-hidden="true"></canvas>
+
+    <!-- =============================================
+         CSS SPARKLE LAYER
+         ============================================= -->
+    <div id="sparkle-layer" aria-hidden="true"></div>
+
+    <!-- =============================================
+         CUTE STAMP — top right corner
+         ============================================= -->
+    <div id="cute-stamp" aria-label="Birthday wish" style="opacity:0;">
+        <div class="stamp-bubble">Happy Birthday Dini! 🎂</div>
+        <div class="stamp-emoji">🎀</div>
+    </div>
+
+    <!-- =============================================
+         SCRIPTS
+         ============================================= -->
+    <script src="main.js"></script>
+    <script>
+        window.addEventListener('load', function () {
+            var audio = document.getElementById('myAudio');
+            var btn   = document.getElementById('music-toggle-btn');
+            var icon  = document.getElementById('music-btn-icon');
+            var label = document.getElementById('music-btn-label');
+            if (!audio || !btn) return;
+
+            var isPlaying = false;
+
+            function setPlayingState(playing) {
+                isPlaying = playing;
+                if (playing) {
+                    icon.textContent  = '❚❚';
+                    label.textContent = 'Pause';
+                    btn.classList.add('playing');
+                } else {
+                    icon.textContent  = '▶';
+                    label.textContent = 'Putar';
+                    btn.classList.remove('playing');
+                }
+            }
+
+            // Trik muted autoplay bypass
+            audio.muted = true;
+            audio.play().then(function () {
+                audio.muted = false;
+                setPlayingState(true);
+            }).catch(function () {
+                setPlayingState(false);
+            });
+
+            // Klik tombol = toggle play/pause
+            btn.addEventListener('click', function () {
+                if (audio.paused) {
+                    audio.muted = false;
+                    audio.play().then(function () {
+                        setPlayingState(true);
+                    }).catch(function(){});
+                } else {
+                    audio.pause();
+                    setPlayingState(false);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
