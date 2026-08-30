@@ -1,15 +1,25 @@
 // ================================================================
 // CONFIGURATION — Happy Birthday Dini Nuranisa
 // ================================================================
-var radius        = 240;   // Carousel radius (px)
-var autoRotate    = true;
-var rotateSpeed   = -60;   // Seconds for one full rotation
-var imgWidth      = 120;
-var imgHeight     = 170;
-var bgMusicURL    = null;
+var deviceLowEnd = (function () {
+  var cores = navigator.hardwareConcurrency || 2;
+  var memory = navigator.deviceMemory || 4;
+  var isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  var screenArea = window.innerWidth * window.innerHeight;
+  return cores <= 2 || memory <= 2 || (isMobile && screenArea < 500000);
+})();
+var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var radius          = 260;
+var autoRotate      = true;
+var rotateSpeed     = -55;
+var imgWidth        = 130;
+var imgHeight       = 180;
+var bgMusicURL      = null;
 var bgMusicControls = false;
-var photoRevealDelay = 1300;
-var removeIntroDelay = 5600;
+// Photos emerge through the opening flower curtain instead of appearing behind it.
+var photoRevealDelay = 3450;
+var removeIntroDelay = 6200;
 
 // ================================================================
 // CAROUSEL SETUP
@@ -19,19 +29,144 @@ var ospin = document.getElementById('spin-container');
 var aImg  = ospin.getElementsByTagName('img');
 var aVid  = ospin.getElementsByTagName('video');
 var aEle  = [...aImg, ...aVid];
+var photoTitle = ospin.querySelector('p');
+var pageVisible = !document.hidden;
+var resizeFrame = 0;
 
-ospin.style.width  = imgWidth  + "px";
-ospin.style.height = imgHeight + "px";
+document.addEventListener('visibilitychange', function () {
+  pageVisible = !document.hidden;
+});
 
-var ground = document.getElementById('ground');
-ground.style.width  = radius * 3 + "px";
-ground.style.height = radius * 3 + "px";
+// Responsive sizing setup
+function setupCarouselDimensions() {
+  var isMobile = window.innerWidth < 658;
+  imgWidth  = isMobile ? 105 : 130;
+  imgHeight = isMobile ? 150 : 180;
+  radius    = isMobile ? 180 : 250;
 
-init(0.02);
+  ospin.style.width  = imgWidth  + "px";
+  ospin.style.height = imgHeight + "px";
+
+  var ground = document.getElementById('ground');
+  if (ground) {
+    ground.style.width  = radius * 3 + "px";
+    ground.style.height = radius * 3 + "px";
+  }
+}
+setupCarouselDimensions();
+window.addEventListener('resize', function () {
+  if (resizeFrame) return;
+  resizeFrame = requestAnimationFrame(function () {
+    resizeFrame = 0;
+    setupCarouselDimensions();
+    if (!document.body.classList.contains('intro-playing')) {
+      init(0.5);
+    }
+  });
+});
+applyTransform(odrag);
+
+// Sembunyikan semua foto pada awalnya untuk animasi satu per satu
+for (var i = 0; i < aEle.length; i++) {
+  aEle[i].classList.add('photo-hidden');
+}
+
 createFlowerIntro();
 
+// Open the exact photo that was clicked in a playful, accessible lightbox.
+(function () {
+  var modal = document.getElementById('photo-modal');
+  var modalImage = document.getElementById('photo-modal-image');
+  var modalCaption = document.getElementById('photo-modal-caption');
+  var closeButton = document.getElementById('photo-modal-close');
+  var previousButton = document.getElementById('photo-modal-prev');
+  var nextButton = document.getElementById('photo-modal-next');
+  if (!modal || !modalImage || !modalCaption || !closeButton || !previousButton || !nextButton) return;
+
+  var captions = [
+    'Senyum paling manis hari ini ✨',
+    'Kenangan kecil, bahagia besar 💖',
+    'Momen hangat yang selalu dirindukan 🌸',
+    'Tetap bersinar seperti bintang ⭐',
+    'Satu foto, seribu cerita 🎀'
+  ];
+  var currentIndex = 0;
+
+  function closePhoto() {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function sprinkleConfetti() {
+    var colors = ['#ffe39f', '#f8c9c9', '#fff8f0', '#b9845a', '#e8caa5'];
+    for (var i = 0; i < 14; i++) {
+      var confetti = document.createElement('span');
+      var angle = Math.random() * Math.PI * 2;
+      var distance = 55 + Math.random() * 105;
+      confetti.className = 'photo-confetti';
+      confetti.style.setProperty('--x', Math.cos(angle) * distance + 'px');
+      confetti.style.setProperty('--y', Math.sin(angle) * distance + 'px');
+      confetti.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.left = '50%';
+      confetti.style.top = '50%';
+      modal.appendChild(confetti);
+      setTimeout(function (item) {
+        return function () { item.remove(); };
+      }(confetti), 850);
+    }
+  }
+
+  function showPhoto(index, withConfetti) {
+    currentIndex = (index + aImg.length) % aImg.length;
+    var photo = aImg[currentIndex];
+    modalImage.src = photo.getAttribute('src') || photo.src;
+    modalImage.alt = photo.alt || 'Foto kenangan';
+    modalCaption.textContent = captions[currentIndex % captions.length];
+    modalImage.classList.remove('modal-photo-refresh');
+    void modalImage.offsetWidth;
+    modalImage.classList.add('modal-photo-refresh');
+    if (withConfetti) sprinkleConfetti();
+  }
+
+  Array.prototype.forEach.call(aImg, function (photo, index) {
+    photo.addEventListener('click', function (event) {
+      event.stopPropagation();
+      showPhoto(index, true);
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      closeButton.focus();
+    });
+  });
+
+  previousButton.addEventListener('click', function (event) {
+    event.stopPropagation();
+    showPhoto(currentIndex - 1, false);
+  });
+  nextButton.addEventListener('click', function (event) {
+    event.stopPropagation();
+    showPhoto(currentIndex + 1, false);
+  });
+  closeButton.addEventListener('click', closePhoto);
+  modal.addEventListener('click', function (event) {
+    if (event.target === modal) closePhoto();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (!modal.classList.contains('is-open')) return;
+    if (event.key === 'Escape') {
+      closePhoto();
+    } else if (event.key === 'ArrowLeft') {
+      showPhoto(currentIndex - 1, false);
+    } else if (event.key === 'ArrowRight') {
+      showPhoto(currentIndex + 1, false);
+    }
+  });
+})();
+
+// Reveal elemen bertahap
 setTimeout(function () {
   document.body.classList.remove('intro-playing');
+  revealPhotosStaggered();
 }, photoRevealDelay);
 
 setTimeout(function () {
@@ -40,47 +175,111 @@ setTimeout(function () {
 }, removeIntroDelay);
 
 // ----------------------------------------------------------------
-// Flower curtain intro
+// Munculkan foto satu per satu secara berurutan melingkar (Carousel 3D)
+// ----------------------------------------------------------------
+function revealPhotosStaggered() {
+  var totalPhotos = aEle.length;
+  var stepDelay = 220; // Jeda waktu proporsional antar foto
+
+  aEle.forEach(function (el, index) {
+    setTimeout(function () {
+      el.classList.remove('photo-hidden');
+      el.style.transform = "rotateY(" + (index * (360 / totalPhotos)) + "deg) translateZ(" + radius + "px)";
+      el.classList.add('photo-revealed');
+    }, index * stepDelay);
+  });
+
+  setTimeout(function () {
+    if (photoTitle) {
+      photoTitle.classList.add('title-visible');
+    }
+  }, totalPhotos * stepDelay + 350);
+}
+
+// ----------------------------------------------------------------
+// Dense Flower Cluster Opening (Tumpukan Bunga Mekar Menutupi Penuh 100% Layar)
 // ----------------------------------------------------------------
 function createFlowerIntro() {
-  var intro = document.getElementById('flower-intro');
-  if (!intro) return;
-  var curtains = intro.getElementsByClassName('flower-curtain');
-  if (!curtains.length) return;
+  var clusterLeft  = document.getElementById('flower-cluster-left');
+  var clusterRight = document.getElementById('flower-cluster-right');
+  if (!clusterLeft || !clusterRight) return;
 
-  for (var c = 0; c < curtains.length; c++) {
-    var cols = window.innerWidth < 658 ? 3 : 4;
-    var rows = 5;
+  var flowerImages = ['./images/bunga4.webp', './images/bunga3.webp'];
+  var clusters = [
+    { el: clusterLeft,  side: 'left' },
+    { el: clusterRight, side: 'right' }
+  ];
 
-    for (var row = 0; row < rows; row++) {
-      for (var col = 0; col < cols; col++) {
-        var flower    = document.createElement('img');
-        var size      = window.innerWidth < 658 ? 140 + Math.random() * 70 : 200 + Math.random() * 110;
-        var delay     = 0.10 + Math.random() * 0.70;
-        var duration  = 4.0  + Math.random() * 0.80;
-        var drift     = -40  + Math.random() * 80;
-        var lift      = -26  + Math.random() * 52;
-        var rotation  = -40  + Math.random() * 80;
-        var x         = ((col + 0.5) / cols) * 100 + (-12 + Math.random() * 24);
-        var y         = ((row + 0.5) / rows) * 100 + (-10 + Math.random() * 20);
+  clusters.forEach(function (item) {
+    var cluster = item.el;
+    // Dense Flower Cluster Opening (Optimal Density Layout)
+    var cols = window.innerWidth < 658 ? 4 : 5;
+    var rows = window.innerWidth < 658 ? 5 : 5;
 
-        flower.src = './images/bunga4.gif';
+    // Lapisan 1: Base Grid padat & rapat
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var flower   = document.createElement('img');
+        var imgSrc   = flowerImages[(r * cols + c) % flowerImages.length];
+        var baseSize = window.innerWidth < 658 ? 135 : 180;
+        var size     = baseSize + Math.random() * (window.innerWidth < 658 ? 45 : 60);
+        var delay    = Math.random() * 2.2;
+        var duration = 2.4 + Math.random() * 2.0;
+        var scale    = 0.95 + Math.random() * 0.35;
+        var rotation = -50 + Math.random() * 100;
+        var dx       = -10 + Math.random() * 20;
+        var dy       = -10 + Math.random() * 20;
+
+        var x = ((c + 0.5) / cols) * 100 + (-8 + Math.random() * 16);
+        var y = ((r + 0.5) / rows) * 100 + (-8 + Math.random() * 16);
+
+        flower.src = imgSrc;
         flower.alt = '';
-        flower.className = 'intro-flower';
-        flower.style.setProperty('--x',         x + '%');
-        flower.style.setProperty('--y',         y + '%');
-        flower.style.setProperty('--size',      size + 'px');
-        flower.style.setProperty('--delay',     delay + 's');
-        flower.style.setProperty('--dur',       duration + 's');
-        flower.style.setProperty('--drift',     drift + 'px');
-        flower.style.setProperty('--drift-end', (drift * 1.3) + 'px');
-        flower.style.setProperty('--lift',      lift + 'px');
-        flower.style.setProperty('--lift-end',  (lift - 24) + 'px');
-        flower.style.setProperty('--rot',       rotation + 'deg');
-        curtains[c].appendChild(flower);
+        flower.className = 'dense-flower';
+        flower.style.setProperty('--x',     x + '%');
+        flower.style.setProperty('--y',     y + '%');
+        flower.style.setProperty('--size',  size + 'px');
+        flower.style.setProperty('--s',     scale);
+        flower.style.setProperty('--rot',   rotation + 'deg');
+        flower.style.setProperty('--dx',    dx + 'px');
+        flower.style.setProperty('--dy',    dy + 'px');
+        flower.style.setProperty('--delay', delay + 's');
+        flower.style.setProperty('--dur',   duration + 's');
+
+        cluster.appendChild(flower);
       }
     }
-  }
+
+    // Lapisan 2: Overlap Bunga Tepi
+    var extraCount = window.innerWidth < 658 ? 8 : 12;
+    for (var k = 0; k < extraCount; k++) {
+      var extraFlower = document.createElement('img');
+      var extraImg    = flowerImages[Math.floor(Math.random() * flowerImages.length)];
+      var extraSize   = window.innerWidth < 658 ? 145 + Math.random() * 50 : 190 + Math.random() * 70;
+      var eDelay      = Math.random() * 2.2;
+      var eDur        = 2.2 + Math.random() * 1.8;
+      var eScale      = 1.0 + Math.random() * 0.35;
+      var eRot        = -70 + Math.random() * 140;
+
+      var ex = item.side === 'left' ? 40 + Math.random() * 65 : -5 + Math.random() * 65;
+      var ey = Math.random() * 105;
+
+      extraFlower.src = extraImg;
+      extraFlower.alt = '';
+      extraFlower.className = 'dense-flower';
+      extraFlower.style.setProperty('--x',     ex + '%');
+      extraFlower.style.setProperty('--y',     ey + '%');
+      extraFlower.style.setProperty('--size',  extraSize + 'px');
+      extraFlower.style.setProperty('--s',     eScale);
+      extraFlower.style.setProperty('--rot',   eRot + 'deg');
+      extraFlower.style.setProperty('--dx',    (-12 + Math.random() * 24) + 'px');
+      extraFlower.style.setProperty('--dy',    (-12 + Math.random() * 24) + 'px');
+      extraFlower.style.setProperty('--delay', eDelay + 's');
+      extraFlower.style.setProperty('--dur',   eDur + 's');
+
+      cluster.appendChild(extraFlower);
+    }
+  });
 }
 
 // ----------------------------------------------------------------
@@ -89,22 +288,22 @@ function createFlowerIntro() {
 function init(delayTime) {
   for (var i = 0; i < aEle.length; i++) {
     aEle[i].style.transform = "rotateY(" + (i * (360 / aEle.length)) + "deg) translateZ(" + radius + "px)";
-    aEle[i].style.transition = "transform 1s";
+    aEle[i].style.transition = "transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)";
     aEle[i].style.transitionDelay = delayTime || (aEle.length - i) / 4 + "s";
   }
 }
 
-function applyTranform(obj) {
+function applyTransform(obj) {
   if (tY > 180) tY = 180;
   if (tY < 0)   tY = 0;
-  obj.style.transform = "rotateX(" + (-tY) + "deg) rotateY(" + (tX) + "deg)";
+  obj.style.transform = "translate(-50%, -50%) rotateX(" + (-tY) + "deg) rotateY(" + (tX) + "deg)";
 }
 
 function playSpin(yes) {
   ospin.style.animationPlayState = yes ? 'running' : 'paused';
 }
 
-var sX, sY, nX, nY, desX = 0, desY = 0, tX = 0, tY = 10;
+var sX, sY, nX, nY, desX = 0, desY = 0, tX = 0, tY = 8;
 
 if (autoRotate) {
   var animName = rotateSpeed > 0 ? 'spin' : 'spinRevert';
@@ -118,54 +317,86 @@ if (bgMusicURL) {
     </audio>`;
 }
 
-// Drag / pointer events
+// Smooth Drag & Momentum Inertia (Rotasi 3D Halus pada Formasi Hati)
 document.onpointerdown = function (e) {
-  clearInterval(odrag.timer);
+  if (odrag.timer) cancelAnimationFrame(odrag.timer);
   e = e || window.event;
-  var sX = e.clientX, sY = e.clientY;
+  sX = e.clientX;
+  sY = e.clientY;
 
   this.onpointermove = function (e) {
     e = e || window.event;
-    var nX = e.clientX, nY = e.clientY;
-    desX = nX - sX; desY = nY - sY;
-    tX += desX * 0.1;  tY += desY * 0.1;
-    applyTranform(odrag);
-    sX = nX; sY = nY;
+    nX = e.clientX;
+    nY = e.clientY;
+    desX = nX - sX;
+    desY = nY - sY;
+    tX += desX * 0.1;
+    tY += desY * 0.1;
+    applyTransform(odrag);
+    sX = nX;
+    sY = nY;
   };
 
   this.onpointerup = function () {
-    odrag.timer = setInterval(function () {
-      desX *= 0.95; desY *= 0.95;
-      tX += desX * 0.1; tY += desY * 0.1;
-      applyTranform(odrag);
-      playSpin(false);
-      if (Math.abs(desX) < 0.5 && Math.abs(desY) < 0.5) {
-        clearInterval(odrag.timer);
-        playSpin(true);
+    function continueMomentum() {
+      desX *= 0.94;
+      desY *= 0.94;
+      tX += desX * 0.1;
+      tY += desY * 0.1;
+      applyTransform(odrag);
+      if (Math.abs(desX) < 0.4 && Math.abs(desY) < 0.4) {
+        odrag.timer = 0;
+        return;
       }
-    }, 17);
+      odrag.timer = requestAnimationFrame(continueMomentum);
+    }
+    odrag.timer = requestAnimationFrame(continueMomentum);
     this.onpointermove = this.onpointerup = null;
   };
 
   return false;
 };
 
-document.onmousewheel = function (e) {
+// Smooth Wheel Zoom
+document.onwheel = function (e) {
   e = e || window.event;
-  var d = e.wheelDelta / 20 || -e.detail;
+  var d = e.deltaY ? -e.deltaY / 15 : e.wheelDelta / 20;
   radius += d;
-  init(1);
+  if (radius < 150) radius = 150;
+  if (radius > 450) radius = 450;
+  init(0.2);
 };
 
 // ================================================================
 // WEBGL HEART SHADER
 // ================================================================
-var canvas = document.getElementById("canvas");
-canvas.width  = window.innerWidth;
-canvas.height = window.innerHeight;
+var canvas = document.getElementById('canvas');
+var gl = null;
 
-var gl = canvas.getContext('webgl', { alpha: true });
-if (!gl) console.error("WebGL tidak tersedia.");
+if (!deviceLowEnd && !reducedMotion && canvas) {
+  try {
+    gl = canvas.getContext('webgl', { alpha: true });
+    if (!gl) console.error("WebGL tidak tersedia.");
+  } catch (e) {
+    console.warn("WebGL error:", e);
+    gl = null;
+  }
+}
+
+if (!gl && canvas) {
+  // Fallback: sembunyikan canvas WebGL
+  canvas.style.display = 'none';
+}
+
+// WebGL Resolution Scale (Optimized for Mobile/GPU)
+function updateCanvasSize() {
+  var dpr = deviceLowEnd ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+  if (!canvas) return;
+  canvas.width  = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+}
+if (gl) updateCanvasSize();
 
 var time = 0.0;
 
@@ -298,11 +529,9 @@ void main() {
 window.addEventListener('resize', onWindowResize, false);
 
 function onWindowResize() {
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.uniform1f(widthHandle,  window.innerWidth);
-  gl.uniform1f(heightHandle, window.innerHeight);
+  updateCanvasSize();
+  gl.uniform1f(widthHandle, canvas.width);
+  gl.uniform1f(heightHandle, canvas.height);
 }
 
 function compileShader(src, type) {
@@ -350,11 +579,15 @@ gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 2 * 4, 0);
 var timeHandle   = getUniformLocation(program, 'time');
 var widthHandle  = getUniformLocation(program, 'width');
 var heightHandle = getUniformLocation(program, 'height');
-gl.uniform1f(widthHandle,  window.innerWidth);
-gl.uniform1f(heightHandle, window.innerHeight);
+gl.uniform1f(widthHandle,  canvas.width);
+gl.uniform1f(heightHandle, canvas.height);
 
 var lastFrame = Date.now();
 function draw() {
+  if (!pageVisible) {
+    requestAnimationFrame(draw);
+    return;
+  }
   var thisFrame = Date.now();
   time += (thisFrame - lastFrame) / 1000;
   lastFrame = thisFrame;
@@ -365,214 +598,368 @@ function draw() {
 draw();
 
 // ================================================================
-// PARTICLE SYSTEM — Canvas 2D (hearts, sparkles, confetti)
+// PARTICLE SYSTEM — Canvas 2D (Meteors, Cosmic Stars, Petals & Sparkles)
 // ================================================================
 (function () {
   var pc = document.getElementById('particles-canvas');
   if (!pc) return;
   var ctx = pc.getContext('2d');
 
-  pc.width  = window.innerWidth;
-  pc.height = window.innerHeight;
+  pc.width  = Math.min(window.innerWidth, deviceLowEnd ? 600 : 1200);
+  pc.height = Math.min(window.innerHeight, deviceLowEnd ? 600 : 1200);
 
+  var particleResizeFrame = 0;
   window.addEventListener('resize', function () {
-    pc.width  = window.innerWidth;
-    pc.height = window.innerHeight;
+    if (particleResizeFrame) return;
+    particleResizeFrame = requestAnimationFrame(function () {
+      particleResizeFrame = 0;
+      pc.width = Math.min(window.innerWidth, deviceLowEnd ? 600 : 1200);
+      pc.height = Math.min(window.innerHeight, deviceLowEnd ? 600 : 1200);
+    });
   });
 
-  /* ---- Colour palettes — Cream & Brown ---- */
-  var heartColors   = ['#d4a55a','#c9956c','#e8d0b0','#9e6b47','#f0c878','#d6aa80','#fff8f0'];
-  var sparkColors   = ['#d4a55a','#f0c878','#fff8f0','#c9956c','#e8d0b0'];
-  var confettiColors= ['#d4a55a','#c9956c','#9e6b47','#e8d0b0','#f0c878','#fff8f0','#d6aa80','#f5e6d3'];
+  /* ---- Cosmic Cream & Space Star Color Palettes ---- */
+  var starColors    = ['#ffffff', '#fff9e6', '#ffe39f', '#fce8cc', '#f5d4a4'];
+  var meteorColors  = ['#ffffff', '#ffe7b3', '#ffd59e', '#faecc9'];
+  var flowerColors  = ['#f8c9c9', '#fad2d2', '#ffe6cc', '#ffd6ba', '#fceddb'];
+  var dustColors    = ['#ffe39f', '#fce8cc', '#fffbf0', '#ebd0b0'];
 
   /* ---- Particle pools ---- */
-  var hearts    = [];
-  var sparks    = [];
-  var confettis = [];
-  var ribbons   = [];
+  var stars     = [];
+  var fallingStars = [];
+  var meteors   = [];
+  var petals    = [];
+  var dusts     = [];
 
-  /* ---- Heart path helper ---- */
-  function heartPath(ctx, x, y, size) {
+  // Inisialisasi bintang-bintang luar angkasa berkelip (Cosmic Milky Way)
+  var isMobileScreen = window.innerWidth < 658;
+  var starCount = deviceLowEnd ? 8 : (isMobileScreen ? 15 : 50);
+  for (var s = 0; s < starCount; s++) {
+    stars.push({
+      x: Math.random() * pc.width,
+      y: Math.random() * pc.height,
+      r: 0.8 + Math.random() * 2.2,
+      alpha: 0.2 + Math.random() * 0.8,
+      speed: 0.015 + Math.random() * 0.035,
+      color: starColors[Math.floor(Math.random() * starColors.length)],
+      pulse: Math.random() * Math.PI * 2,
+      hasRays: Math.random() > 0.7
+    });
+  }
+
+  /* ---- Spawn Falling Star (small, frequent streaks) ---- */
+  function spawnFallingStar() {
+    var angle = Math.PI / 3 + Math.random() * 0.22;
+    var speed = 3.5 + Math.random() * 4.5;
+
+    fallingStars.push({
+      x: Math.random() * pc.width,
+      y: -15 - Math.random() * 80,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      len: 18 + Math.random() * 38,
+      alpha: 0.45 + Math.random() * 0.5,
+      life: 0,
+      maxLife: 55 + Math.random() * 45,
+      color: starColors[Math.floor(Math.random() * starColors.length)]
+    });
+  }
+
+  /* ---- Spawn Meteor (layered hot core and tapered trail) ---- */
+  function spawnMeteor() {
+    var angle  = Math.PI / 5 + Math.random() * 0.22;
+    var speed  = 9 + Math.random() * 9;
+    var startsFromSide = Math.random() > 0.72;
+    var startX = startsFromSide ? -80 - Math.random() * 120 : Math.random() * pc.width;
+    var startY = startsFromSide ? Math.random() * (pc.height * 0.45) : -40 - Math.random() * 120;
+
+    meteors.push({
+      x: startX,
+      y: startY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      len: 90 + Math.random() * 150,
+      color: meteorColors[Math.floor(Math.random() * meteorColors.length)],
+      alpha: 1.0,
+      decay: 0.009 + Math.random() * 0.012,
+      thick: 1.4 + Math.random() * 2.2,
+      life: 0,
+      maxLife: 90 + Math.random() * 80
+    });
+  }
+
+  /* ---- Spawn Floating Flower Petal (Bunga luar angkasa melayang santai) ---- */
+  function spawnPetal() {
+    var sz = 8 + Math.random() * 14;
+    petals.push({
+      x: Math.random() * pc.width,
+      y: -20,
+      sz: sz,
+      vx: -0.6 + Math.random() * 1.2,
+      vy: 0.8 + Math.random() * 1.5,
+      rot: Math.random() * Math.PI * 2,
+      rotV: -0.02 + Math.random() * 0.04,
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.03 + Math.random() * 0.03,
+      alpha: 0.3 + Math.random() * 0.6,
+      color: flowerColors[Math.floor(Math.random() * flowerColors.length)]
+    });
+  }
+
+  /* ---- Spawn Cosmic Glowing Dust Particle ---- */
+  function spawnDust() {
+    dusts.push({
+      x: Math.random() * pc.width,
+      y: pc.height + 10,
+      sz: 1.5 + Math.random() * 3.5,
+      vx: -0.5 + Math.random() * 1.0,
+      vy: -(0.5 + Math.random() * 1.2),
+      alpha: 0.0,
+      maxA: 0.4 + Math.random() * 0.5,
+      life: 0,
+      maxLife: 100 + Math.random() * 140,
+      color: dustColors[Math.floor(Math.random() * dustColors.length)]
+    });
+  }
+
+  // Draw 5-pointed Star with Soft Glow
+  function drawStarSpark(ctx, cx, cy, spikes, outerRadius, innerRadius, color, alpha) {
+    var rot = Math.PI / 2 * 3;
+    var x = cx;
+    var y = cy;
+    var step = Math.PI / spikes;
+
     ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(size / 10, size / 10);
+    ctx.globalAlpha = alpha;
     ctx.beginPath();
-    ctx.moveTo(0, -3);
-    ctx.bezierCurveTo( 5, -9,  11, -3,  0,  5);
-    ctx.bezierCurveTo(-11, -3, -5, -9,  0, -3);
+    ctx.moveTo(cx, cy - outerRadius);
+    for (var i = 0; i < spikes; i++) {
+      x = cx + Math.cos(rot) * outerRadius;
+      y = cy + Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = cx + Math.cos(rot) * innerRadius;
+      y = cy + Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
     ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = outerRadius * 3;
+    ctx.fill();
     ctx.restore();
   }
 
-  /* ---- Spawn helpers ---- */
-  function spawnHeart() {
-    var sz = 10 + Math.random() * 20;
-    hearts.push({
-      x:     Math.random() * pc.width,
-      y:     pc.height + sz,
-      sz:    sz,
-      vx:   -1.2 + Math.random() * 2.4,
-      vy:   -(1.2 + Math.random() * 2.2),
-      alpha: 0.0,
-      maxA:  0.5 + Math.random() * 0.5,
-      fadeIn: true,
-      color: heartColors[Math.floor(Math.random() * heartColors.length)],
-      rot:   Math.random() * Math.PI * 2,
-      rotV:  (-0.015 + Math.random() * 0.03),
-      wobble: Math.random() * Math.PI * 2,
-      wobbleSpeed: 0.025 + Math.random() * 0.02,
-    });
+  // Draw Realistic Petal
+  function drawPetal(ctx, x, y, size, rot, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.bezierCurveTo(size * 0.8, -size * 0.4, size * 0.8, size * 0.6, 0, size);
+    ctx.bezierCurveTo(-size * 0.8, size * 0.6, -size * 0.8, -size * 0.4, 0, -size);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.restore();
   }
 
-  function spawnSpark() {
-    sparks.push({
-      x:     Math.random() * pc.width,
-      y:     Math.random() * pc.height,
-      sz:    2 + Math.random() * 5,
-      alpha: 0.0,
-      maxA:  0.6 + Math.random() * 0.4,
-      life:  0,
-      maxLife: 60 + Math.random() * 80,
-      color: sparkColors[Math.floor(Math.random() * sparkColors.length)],
-    });
-  }
+  var meteorTimer = 0, meteorInterval = deviceLowEnd ? 300 : (isMobileScreen ? 120 : 85); // Meteor melintas berkala
+  var fallingStarTimer = 0, fallingStarInterval = deviceLowEnd ? 80 : (isMobileScreen ? 40 : 24);
+  var petalTimer  = 0, petalInterval  = deviceLowEnd ? 80 : (isMobileScreen ? 40 : 22);
+  var dustTimer   = 0, dustInterval   = deviceLowEnd ? 60 : (isMobileScreen ? 30 : 16);
 
-  function spawnConfetti() {
-    var isRibbon = Math.random() > 0.55;
-    var w = isRibbon ? (2 + Math.random() * 4) : (5 + Math.random() * 9);
-    var h = isRibbon ? (10 + Math.random() * 16) : (5 + Math.random() * 9);
-    confettis.push({
-      x:     Math.random() * pc.width,
-      y:    -h,
-      w:     w,
-      h:     h,
-      vx:   -1.4 + Math.random() * 2.8,
-      vy:    1.5 + Math.random() * 2.5,
-      rot:   Math.random() * Math.PI * 2,
-      rotV: (-0.06 + Math.random() * 0.12),
-      wobble: 0,
-      wobbleSpeed: 0.04 + Math.random() * 0.03,
-      alpha: 0.9 + Math.random() * 0.1,
-      color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
-      isRibbon,
-    });
-  }
-
-  /* ---- Spawn timer ---- */
-  var heartTimer    = 0, heartInterval    = 28;
-  var sparkTimer    = 0, sparkInterval    = 12;
-  var confettiTimer = 0, confettiInterval = 35;
-
-  /* ---- Main loop ---- */
+  /* ---- Main Render Loop ---- */
   function tick() {
+    if (!pageVisible) {
+      requestAnimationFrame(tick);
+      return;
+    }
     ctx.clearRect(0, 0, pc.width, pc.height);
 
-    heartTimer++;
-    sparkTimer++;
-    confettiTimer++;
+    meteorTimer++;
+    fallingStarTimer++;
+    petalTimer++;
+    dustTimer++;
 
-    if (heartTimer >= heartInterval)    { spawnHeart();    heartTimer = 0; }
-    if (sparkTimer >= sparkInterval)    { spawnSpark();    sparkTimer = 0; }
-    if (confettiTimer >= confettiInterval){ spawnConfetti(); confettiTimer = 0; }
+    if (meteorTimer >= meteorInterval) {
+      spawnMeteor();
+      // Kadang meteor muncul ganda (meteor shower)
+      if (Math.random() > 0.5) {
+        setTimeout(spawnMeteor, 180);
+      }
+      meteorInterval = 60 + Math.floor(Math.random() * 90);
+      meteorTimer = 0;
+    }
+    if (fallingStarTimer >= fallingStarInterval) {
+      spawnFallingStar();
+      fallingStarInterval = 16 + Math.floor(Math.random() * 30);
+      fallingStarTimer = 0;
+    }
 
-    /* ---- Draw hearts ---- */
-    for (var i = hearts.length - 1; i >= 0; i--) {
-      var h = hearts[i];
-      h.wobble += h.wobbleSpeed;
-      h.x  += h.vx + Math.sin(h.wobble) * 0.6;
-      h.y  += h.vy;
-      h.rot += h.rotV;
-      h.vy -= 0.008; // gentle upward drift
+    if (petalTimer >= petalInterval) { spawnPetal(); petalTimer = 0; }
+    if (dustTimer >= dustInterval)   { spawnDust();  dustTimer = 0; }
 
-      if (h.fadeIn) {
-        h.alpha += 0.03;
-        if (h.alpha >= h.maxA) { h.alpha = h.maxA; h.fadeIn = false; }
+    /* ---- 1. Draw Twinkling Stars ---- */
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      s.pulse += s.speed;
+      var curAlpha = 0.25 + ((Math.sin(s.pulse) + 1) / 2) * (s.alpha - 0.25);
+
+      if (s.hasRays) {
+        drawStarSpark(ctx, s.x, s.y, 4, s.r * 2.8, s.r * 0.8, s.color, curAlpha);
       } else {
-        if (h.y < -h.sz * 2) { h.alpha -= 0.02; }
-      }
-
-      if (h.alpha <= 0) { hearts.splice(i, 1); continue; }
-
-      ctx.save();
-      ctx.globalAlpha = h.alpha;
-
-      // soft glow behind heart
-      var grd = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, h.sz * 2.8);
-      grd.addColorStop(0, h.color);
-      grd.addColorStop(1, 'transparent');
-      ctx.fillStyle = grd;
-      heartPath(ctx, h.x, h.y, h.sz * 2.8);
-      ctx.fill();
-
-      // solid heart
-      ctx.translate(h.x, h.y);
-      ctx.rotate(h.rot);
-      heartPath(ctx, 0, 0, h.sz);
-      ctx.fillStyle = h.color;
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    /* ---- Draw sparkles ---- */
-    for (var i = sparks.length - 1; i >= 0; i--) {
-      var s = sparks[i];
-      s.life++;
-      var progress = s.life / s.maxLife;
-      s.alpha = progress < 0.3
-        ? (progress / 0.3) * s.maxA
-        : (1 - (progress - 0.3) / 0.7) * s.maxA;
-
-      if (s.life >= s.maxLife) { sparks.splice(i, 1); continue; }
-
-      ctx.save();
-      ctx.globalAlpha = s.alpha;
-
-      // cross sparkle shape
-      var arms = 4;
-      var innerR = s.sz * 0.35;
-      var outerR = s.sz;
-      ctx.translate(s.x, s.y);
-      ctx.rotate(Math.PI * progress * 2);
-      ctx.beginPath();
-      for (var a = 0; a < arms * 2; a++) {
-        var r = a % 2 === 0 ? outerR : innerR;
-        var angle = (a / (arms * 2)) * Math.PI * 2;
-        if (a === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
-        else         ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-      }
-      ctx.closePath();
-      ctx.fillStyle = s.color;
-      ctx.shadowColor = s.color;
-      ctx.shadowBlur  = s.sz * 2;
-      ctx.fill();
-      ctx.restore();
-    }
-
-    /* ---- Draw confetti ---- */
-    for (var i = confettis.length - 1; i >= 0; i--) {
-      var c = confettis[i];
-      c.wobble += c.wobbleSpeed;
-      c.x  += c.vx + Math.sin(c.wobble) * 1.2;
-      c.y  += c.vy;
-      c.rot += c.rotV;
-
-      if (c.y > pc.height + 30) { confettis.splice(i, 1); continue; }
-
-      ctx.save();
-      ctx.globalAlpha = c.alpha;
-      ctx.translate(c.x, c.y);
-      ctx.rotate(c.rot);
-      ctx.fillStyle = c.color;
-
-      if (c.isRibbon) {
-        // wavy ribbon
+        ctx.save();
+        ctx.globalAlpha = curAlpha;
         ctx.beginPath();
-        ctx.ellipse(0, 0, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = s.r * 4;
         ctx.fill();
-      } else {
-        ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+        ctx.restore();
       }
+    }
+
+    /* ---- 2. Draw Falling Stars ---- */
+    for (var f = fallingStars.length - 1; f >= 0; f--) {
+      var fs = fallingStars[f];
+      fs.x += fs.vx;
+      fs.y += fs.vy;
+      fs.life++;
+
+      if (fs.life >= fs.maxLife || fs.y > pc.height + 30 || fs.x > pc.width + 30) {
+        fallingStars.splice(f, 1);
+        continue;
+      }
+
+      var starFade = Math.min(1, fs.life / 10, (fs.maxLife - fs.life) / 16);
+      var starTailX = fs.x - fs.vx * (fs.len / 6);
+      var starTailY = fs.y - fs.vy * (fs.len / 6);
+      var starGradient = ctx.createLinearGradient(fs.x, fs.y, starTailX, starTailY);
+      starGradient.addColorStop(0, fs.color);
+      starGradient.addColorStop(1, 'transparent');
+
+      ctx.save();
+      ctx.globalAlpha = starFade * fs.alpha;
+      ctx.strokeStyle = starGradient;
+      ctx.lineWidth = 1.1;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = fs.color;
+      ctx.shadowBlur = 7;
+      ctx.beginPath();
+      ctx.moveTo(fs.x, fs.y);
+      ctx.lineTo(starTailX, starTailY);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ---- 3. Draw Meteors (Shooting Stars) ---- */
+    for (var m = meteors.length - 1; m >= 0; m--) {
+      var mt = meteors[m];
+      mt.x += mt.vx;
+      mt.y += mt.vy;
+      mt.alpha -= mt.decay;
+      mt.life++;
+
+      if (mt.alpha <= 0 || mt.life >= mt.maxLife || mt.y > pc.height + 100 || mt.x > pc.width + 100) {
+        meteors.splice(m, 1);
+        continue;
+      }
+
+      var trailX = mt.x - (mt.vx / 10) * mt.len;
+      var trailY = mt.y - (mt.vy / 10) * mt.len;
+      ctx.save();
+      var grad = ctx.createLinearGradient(
+        mt.x, mt.y,
+        trailX,
+        trailY
+      );
+      grad.addColorStop(0, mt.color);
+      grad.addColorStop(0.12, 'rgba(255, 246, 215, ' + (mt.alpha * 0.95) + ')');
+      grad.addColorStop(0.42, 'rgba(229, 167, 81, ' + (mt.alpha * 0.5) + ')');
+      grad.addColorStop(1, 'transparent');
+
+      ctx.globalAlpha = mt.alpha;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = mt.thick * 2.2;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = mt.color;
+      ctx.shadowBlur = 18;
+
+      ctx.beginPath();
+      ctx.moveTo(mt.x, mt.y);
+      ctx.lineTo(trailX, trailY);
+      ctx.stroke();
+
+      // Narrow hot core inside the softer atmospheric trail.
+      ctx.globalAlpha = mt.alpha * 0.95;
+      ctx.strokeStyle = '#fffdf3';
+      ctx.lineWidth = mt.thick * 0.65;
+      ctx.shadowBlur = 7;
+      ctx.beginPath();
+      ctx.moveTo(mt.x, mt.y);
+      ctx.lineTo(mt.x - (mt.vx / 10) * mt.len * 0.28, mt.y - (mt.vy / 10) * mt.len * 0.28);
+      ctx.stroke();
+
+      // Kepala Meteor Bercahaya Terang
+      ctx.globalAlpha = mt.alpha;
+      ctx.beginPath();
+      ctx.arc(mt.x, mt.y, mt.thick * 1.7, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    /* ---- 4. Draw Floating Petals ---- */
+    for (var p = petals.length - 1; p >= 0; p--) {
+      var pt = petals[p];
+      pt.wobble += pt.wobbleSpeed;
+      pt.x += pt.vx + Math.sin(pt.wobble) * 0.8;
+      pt.y += pt.vy;
+      pt.rot += pt.rotV;
+
+      if (pt.y > pc.height + 30) {
+        petals.splice(p, 1);
+        continue;
+      }
+
+      drawPetal(ctx, pt.x, pt.y, pt.sz, pt.rot, pt.color, pt.alpha);
+    }
+
+    /* ---- 5. Draw Cosmic Glowing Dust ---- */
+    for (var d = dusts.length - 1; d >= 0; d--) {
+      var dt = dusts[d];
+      dt.life++;
+      dt.x += dt.vx;
+      dt.y += dt.vy;
+
+      var progress = dt.life / dt.maxLife;
+      dt.alpha = progress < 0.3
+        ? (progress / 0.3) * dt.maxA
+        : (1 - (progress - 0.3) / 0.7) * dt.maxA;
+
+      if (dt.life >= dt.maxLife || dt.y < -20) {
+        dusts.splice(d, 1);
+        continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = dt.alpha;
+      ctx.beginPath();
+      ctx.arc(dt.x, dt.y, dt.sz, 0, Math.PI * 2);
+      ctx.fillStyle = dt.color;
+      ctx.shadowColor = dt.color;
+      ctx.shadowBlur = dt.sz * 4;
+      ctx.fill();
       ctx.restore();
     }
 
@@ -617,65 +1004,6 @@ draw();
 })();
 
 // ================================================================
-// FLOATING EMOJI HEARTS (DOM)
-// ================================================================
-(function () {
-  var emojis = ['🌸','💕','✨','💖','🌷','💗','🌺','💝','⭐','🌟','💫','🎀'];
-  var count  = window.innerWidth < 658 ? 10 : 18;
-
-  for (var i = 0; i < count; i++) {
-    var el    = document.createElement('div');
-    var emoji = emojis[Math.floor(Math.random() * emojis.length)];
-    var sz    = 14 + Math.random() * 22;
-    var dur   = 6  + Math.random() * 8;
-    var delay = Math.random() * 10;
-    var x     = 3  + Math.random() * 94;
-    var drift = -40 + Math.random() * 80;
-    var rot   = -18 + Math.random() * 36;
-
-    el.className = 'float-heart';
-    el.textContent = emoji;
-    el.style.setProperty('--sz',    sz + 'px');
-    el.style.setProperty('--dur',   dur + 's');
-    el.style.setProperty('--delay', delay + 's');
-    el.style.setProperty('--x',     x + '%');
-    el.style.setProperty('--drift', drift + 'px');
-    el.style.setProperty('--rot',   rot + 'deg');
-    document.body.appendChild(el);
-  }
-})();
-
-// ================================================================
-// BOUNCING CUTE CHARACTERS (bottom of screen)
-// ================================================================
-(function () {
-  var chars  = ['🌸','💕','⭐','🌺','💖','🌷','✨','🎀','💗','🌟'];
-  var count  = window.innerWidth < 658 ? 6 : 10;
-
-  for (var i = 0; i < count; i++) {
-    var el    = document.createElement('div');
-    var emoji = chars[Math.floor(Math.random() * chars.length)];
-    var sz    = 18 + Math.random() * 24;
-    var dur   = 2.0 + Math.random() * 1.5;
-    var delay = Math.random() * 4;
-    var x     = 3  + Math.random() * 94;
-    var b     = 8  + Math.random() * 20;
-    var rot   = -20 + Math.random() * 40;
-
-    el.className = 'bounce-char';
-    el.textContent = emoji;
-    el.style.setProperty('--sz',    sz + 'px');
-    el.style.setProperty('--dur',   dur + 's');
-    el.style.setProperty('--delay', delay + 's');
-    el.style.setProperty('--x',     x + '%');
-    el.style.setProperty('--b',     b + 'vh');
-    el.style.setProperty('--rot',   rot + 'deg');
-    el.style.fontSize = sz + 'px';
-    document.body.appendChild(el);
-  }
-})();
-
-// ================================================================
 // CUTE STAMP — top right corner
 // ================================================================
 (function () {
@@ -689,18 +1017,17 @@ draw();
 })();
 
 // ================================================================
-// GREETING OVERLAY — subtle watermark text
+// GREETING OVERLAY — clean & readable watermark text
 // ================================================================
 (function () {
   var overlay = document.getElementById('greeting-overlay');
   if (!overlay) return;
-  var lines = ["Happy Birthday", "Dini Nuranisa", "🌸💕✨"];
+  var lines = ["Happy Birthday", "Dini Nuranisa"];
   lines.forEach(function (text, idx) {
     var div = document.createElement('div');
     div.className = 'greeting-line';
     div.textContent = text;
     div.style.animationDelay = (idx * 0.8) + 's';
-    div.style.fontSize = idx === 2 ? 'clamp(2rem, 6vw, 5rem)' : undefined;
     overlay.appendChild(div);
   });
 })();
