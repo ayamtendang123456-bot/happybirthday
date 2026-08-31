@@ -28,52 +28,22 @@
 </head>
 
 <body>
-  <audio id="background-music" src="./music/monokrom.mp3" preload="auto" muted loop></audio>
+  <audio id="background-music" src="./music/monokrom.mp3" preload="metadata" loop></audio>
 
-  <!-- Tombol Play/Pause Musik -->
-  <button id="music-toggle-btn" aria-label="Play/Pause Musik" title="Play/Pause Musik">
-    <span id="music-btn-icon">▶</span>
-    <span id="music-btn-label">Putar</span>
+  <!-- Floating Music Control Button -->
+  <button id="music-toggle" class="music-toggle-btn" aria-label="Play/Pause Musik" title="Play/Pause Musik">
+    <span class="music-icon" id="music-icon">▶</span>
+    <span class="music-note n1">♪</span>
+    <span class="music-note n2">♫</span>
+    <span class="music-note n3">♩</span>
   </button>
-
-  <style>
-    #music-toggle-btn {
-      position: fixed;
-      bottom: 24px;
-      left: 24px;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, rgba(255,150,200,0.85), rgba(220,80,160,0.85));
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #fff;
-      border: 1.5px solid rgba(255,255,255,0.3);
-      border-radius: 50px;
-      padding: 11px 20px;
-      font-size: 14px;
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(220,80,160,0.45);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      animation: musicBtnAppear 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    #music-toggle-btn:hover {
-      transform: scale(1.08);
-      box-shadow: 0 6px 28px rgba(220,80,160,0.65);
-    }
-    #music-toggle-btn:active { transform: scale(0.96); }
-    #music-btn-icon { font-size: 16px; }
-    @keyframes musicBtnAppear {
-      from { opacity: 0; transform: translateY(20px) scale(0.8); }
-      to   { opacity: 1; transform: translateY(0)   scale(1);   }
-    }
-  </style>
 
   <!-- Falling flower petals canvas -->
   <canvas id="petalCanvas" aria-hidden="true"></canvas>
+
+  <!-- Space star canvas — persis love (bintang jatuh luar angkasa) tapi pembeda: palette cream coklat -->
+  <canvas id="spaceCanvas" aria-hidden="true"></canvas>
+  <div id="spaceSparkle" aria-hidden="true"></div>
 
   <!-- Animated CSS Clouds -->
   <div class="clouds-container" aria-hidden="true">
@@ -104,45 +74,88 @@
         <li><span id="minutes"></span>Minutes</li>
         <li><span id="seconds"></span>Seconds</li>
       </ul>
-      <p class="timer-hint">yang sabar yahh&nbsp;🤭<br>nanti kebuka sendiri kalau udah sesuai tanggalnya heheheeh&nbsp;🎀</p>
+      <p class="countdown-note">yang sabar yahh&nbsp;🤭<br>nanti kebuka sendiri kalau udah sesuai tanggalnya heheheeh&nbsp;🎀</p>
     </div>
 
-    <!-- Slide 1: Image -->
-    <div id="slideSatu" class="animate__animated animate__slideInDown animate__slow d-none">
-      <img src="./img/hbd1.png" class="img" alt="Happy Birthday">
+    <!-- Kabut transisi countdown → birthday (seamless dissolve, tanpa teks) -->
+    <div id="fogBloomTransition" class="fog-bloom-overlay" aria-hidden="true">
+      <div class="fog-bloom-mist fog-bloom-mist-1"></div>
+      <div class="fog-bloom-mist fog-bloom-mist-2"></div>
+      <div class="fog-bloom-grid" id="fogBloomGrid"></div>
+    </div>
+
+    <!-- Slide 1: Pure Kinetic Floating Typography (Tanpa Box / Card, Huruf & Kata Mekar Satu per Satu) -->
+    <div id="slideSatu" class="slides d-none hbd-kinetic-stage">
+      <div class="sparkle-container" aria-hidden="true">
+        <span class="magic-star" style="top: 10%; left: 15%; animation-delay: 0s;">✨</span>
+        <span class="magic-star" style="top: 20%; right: 18%; animation-delay: 0.8s;">🌸</span>
+        <span class="magic-star" style="top: 75%; left: 22%; animation-delay: 1.4s;">💖</span>
+        <span class="magic-star" style="top: 70%; right: 20%; animation-delay: 0.4s;">✨</span>
+      </div>
+      <div class="kinetic-text-container" id="hbdDynamicTitle">
+        <div class="kinetic-row row-happy">
+          <span class="k-letter" style="--l-idx: 0">H</span>
+          <span class="k-letter" style="--l-idx: 1">A</span>
+          <span class="k-letter" style="--l-idx: 2">P</span>
+          <span class="k-letter" style="--l-idx: 3">P</span>
+          <span class="k-letter" style="--l-idx: 4">Y</span>
+        </div>
+        <div class="kinetic-row row-birthday">
+          <span class="k-letter" style="--l-idx: 5">B</span>
+          <span class="k-letter" style="--l-idx: 6">I</span>
+          <span class="k-letter" style="--l-idx: 7">R</span>
+          <span class="k-letter" style="--l-idx: 8">T</span>
+          <span class="k-letter" style="--l-idx: 9">H</span>
+          <span class="k-letter" style="--l-idx: 10">D</span>
+          <span class="k-letter" style="--l-idx: 11">A</span>
+          <span class="k-letter" style="--l-idx: 12">Y</span>
+        </div>
+        <div class="kinetic-row row-name">
+          <span class="name-sparkle-left">✨</span>
+          <span class="k-name-word" style="--n-idx: 13">Dini </span>
+          <span class="k-name-word" style="--n-idx: 14">Nuranissa</span>
+          <span class="name-crown-kinetic">👑</span>
+        </div>
+      </div>
     </div>
 
     <!-- Slide 2: Pesan 1 -->
     <div id="slideDua"
       class="slides d-none paper animate__zoomInDown animate__animated animate__delay-2s animate__slow">
+      <div class="paper-holes"></div>
       <div class="paper-content">
         <p id="teks1" class="teks"></p>
       </div>
-      <img src="./img/cap.webp" class="paper-stamp" alt="cap from Arif">
+      <img src="./img/cap.webp" class="paper-stamp" alt="cap from Arif" loading="lazy" decoding="async">
     </div>
 
     <!-- Slide 3: Pesan 2 -->
     <div id="slideTiga" class="slides d-none paper animate__fadeInRight animate__animated">
+      <div class="paper-holes"></div>
       <div class="paper-content">
         <p id="teks2" class="teks"></p>
       </div>
-      <img src="./img/cap.webp" class="paper-stamp" alt="cap from Arif">
+      <img src="./img/cap.webp" class="paper-stamp" alt="cap from Arif" loading="lazy" decoding="async">
     </div>
 
     <!-- Slide 4: Suka/Gak -->
-    <div class="kotak d-none slides animate__animated animate__fadeInDown animate__delay-2s" id="slideEmpat">
-      <div class="row">
-        <div class="col-sm mt-1">
-          <h5>Kamu suka nggak? 🎀</h5>
-        </div>
+    <div class="kotak d-none slides" id="slideEmpat">
+      <div class="card-washi-tape">🎀 Love Check 🎀</div>
+      <span class="card-deco-heart deco-left">🌸</span>
+      <span class="card-deco-heart deco-right">✨</span>
+      <div class="question-header">
+        <h5 id="questionTitle">Kamu suka nggak? 🎀</h5>
+        <p class="question-sub">Jawab jujur yaa, jangan bohong! 🙈</p>
       </div>
-      <div class="row mt-3">
-        <div class="col-4 offset-2">
-          <button id="gak" class="btn btn-outline-danger">Gak! 😅</button>
-        </div>
-        <div class="col-4">
-          <button id="suka" class="btn btn-outline-info">Suka!! 💖</button>
-        </div>
+      <div class="button-choice-group">
+        <button id="gak" class="btn btn-cute-dodge" type="button">
+          <span class="btn-text">Gak! 😅</span>
+          <span class="btn-dodge-hint" id="dodgeHint">Eits kabur! 😜</span>
+        </button>
+        <button id="suka" class="btn btn-cute-suka" type="button">
+          <span class="btn-text">Suka Banget!! 💖</span>
+          <span class="btn-heart-pulse">✨</span>
+        </button>
       </div>
     </div>
 
@@ -152,12 +165,32 @@
     </div>
     <p id="trims" class="d-none mt-2"></p>
 
-    <div id="slideEnam" class="lanjut-box d-none animate__animated animate__fadeInUp animate__slow">
-      <p class="lanjut-teks">Masih ada satu kejutan kecil lagi.</p>
-      <a href="./love/index_love.html" class="lanjut-button" aria-label="Klik untuk lanjutkan ke halaman berikutnya">
-        <i class="fas fa-heart"></i>
-        <span>Klik untuk lanjutkan</span>
-      </a>
+    <!-- Slide 6: Surprise Box (Wahh & Cute Surprise Portal) -->
+    <div id="slideEnam" class="lanjut-box d-none">
+      <div class="surprise-badge">🎁 Special Surprise 🎁</div>
+
+      <span class="surprise-float-icon sf-1">🌸</span>
+      <span class="surprise-float-icon sf-2">💖</span>
+      <span class="surprise-float-icon sf-3">⭐</span>
+      <span class="surprise-float-icon sf-4">🎀</span>
+      
+      <div class="surprise-gift-visual" id="giftBoxTrigger" aria-hidden="true">
+        <div class="gift-box-bounce">
+          <span class="gift-emoji">🎁</span>
+          <span class="gift-sparkles">✨</span>
+        </div>
+      </div>
+
+      <div class="surprise-content">
+        <h5 class="lanjut-title">Masih ada satu kejutan manis untukmu! 🎀</h5>
+        <p class="lanjut-teks">Buka hadiah spesial ini untuk melihat galeri kenangan kamu ✨</p>
+        
+        <a href="./love/index_love.html" class="lanjut-button" aria-label="Buka kejutan spesial">
+          <span class="btn-gift-icon">✨</span>
+          <span class="btn-label-text">Buka Kejutan Spesial 💖</span>
+          <span class="btn-arrow-bounce">➔</span>
+        </a>
+      </div>
     </div>
 
     <!-- Tap hint -->
@@ -168,19 +201,23 @@
     <footer class="page-footer font-small blue fixed-bottom"></footer>
   </div>
 
-  <!-- Scripts -->
+    <!-- Dreamy Thick Fog / Mist Transition Portal Overlay -->
+    <div id="dreamMistOverlay" class="dream-mist-overlay" aria-hidden="true">
+      <div class="mist-layer mist-layer-1"></div>
+      <div class="mist-layer mist-layer-2"></div>
+      <div class="mist-glow-center">
+        <span class="mist-heart-icon">💖</span>
+        <span class="mist-text-hint">Membuka Galeri Kenangan... ✨</span>
+      </div>
+    </div>
+
+    <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-    integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous">
-    </script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
-    integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous">
-    </script>
-  <script src="https://kit.fontawesome.com/61e5120832.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/typeit@7.0.4/dist/typeit.min.js"></script>
-  <script src="https://momentjs.com/downloads/moment.js"></script>
-  <script src="https://momentjs.com/downloads/moment-with-locales.js"></script>
-  <script src="https://momentjs.com/downloads/moment-timezone-with-data.js"></script>
-  <script src="script.js"></script>
+    integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous" defer>
+  </script>
+  <script src="https://kit.fontawesome.com/61e5120832.js" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/typeit@7.0.4/dist/typeit.min.js" defer></script>
+  <script src="script.js" defer></script>
 </body>
 
 </html>
