@@ -397,6 +397,57 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 1200);
     });
   }
+
+  // ── Photo Modal Popup Handlers ──
+  const photoModal = document.getElementById('photoModal');
+  const closeModalBtn = document.getElementById('closePhotoModal');
+  const modalImg = document.getElementById('modalImg');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalWish = document.getElementById('modalWish');
+  const polaroidCards = document.querySelectorAll('.polaroid-card');
+
+  polaroidCards.forEach(card => {
+    card.addEventListener('click', function (e) {
+      e.stopPropagation(); // jangan trigger listener body
+      const img = card.querySelector('img');
+      const title = card.getAttribute('data-title') || '';
+      const wish = card.getAttribute('data-wish') || '';
+      const modalCard = photoModal ? photoModal.querySelector('.photo-modal-card') : null;
+
+      if (img && modalImg) modalImg.src = img.src;
+      if (modalTitle) modalTitle.textContent = title;
+      if (modalWish) modalWish.textContent = wish;
+
+      if (modalCard) {
+        if (card.classList.contains('pol-1')) {
+          modalCard.setAttribute('data-current', 'pol-1');
+        } else {
+          modalCard.removeAttribute('data-current');
+        }
+      }
+
+      if (photoModal) photoModal.classList.add('is-open');
+    });
+  });
+
+  function closePhotoModal() {
+    if (photoModal) photoModal.classList.remove('is-open');
+  }
+
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closePhotoModal();
+    });
+  }
+
+  if (photoModal) {
+    photoModal.addEventListener('click', function (e) {
+      if (e.target === photoModal) {
+        closePhotoModal();
+      }
+    });
+  }
 });
 
 // ── Interactive Sparkle & Touch Ripples on Click / Tap ──
