@@ -117,6 +117,41 @@
           <span class="name-crown-kinetic">👑</span>
         </div>
       </div>
+
+      <!-- Aesthetic Floating Polaroid Photo Gallery for Dini -->
+      <div class="photo-floating-gallery">
+        <div class="polaroid-card pol-1" style="--p-idx: 1; --rot: -8deg;" data-title="Cute Dini 🌸" data-wish="Senyum kamu selalu bisa bikin hari-hari jadi lebih cerah dan hangat! 🌸✨">
+          <div class="polaroid-pin">📍</div>
+          <div class="polaroid-img-wrap">
+            <img src="./img/Dini1.jpeg" alt="Dini 1" loading="eager">
+          </div>
+          <div class="polaroid-caption">Cute Dini 🌸</div>
+        </div>
+
+        <div class="polaroid-card pol-2" style="--p-idx: 2; --rot: 7deg;" data-title="Sweet Moments ✨" data-wish="Semoga setiap momen di umur yang baru ini dipenuhi kebahagiaan manis! 💖🎈">
+          <div class="polaroid-pin">💖</div>
+          <div class="polaroid-img-wrap">
+            <img src="./img/Dini2.jpeg" alt="Dini 2" loading="eager">
+          </div>
+          <div class="polaroid-caption">Sweet Moments ✨</div>
+        </div>
+
+        <div class="polaroid-card pol-3" style="--p-idx: 3; --rot: -6deg;" data-title="Pretty Smile 🌷" data-wish="Tetaplah jadi diri sendiri yang selalu ceria dan menginspirasi yaa! 🌷🎀">
+          <div class="polaroid-pin">🎀</div>
+          <div class="polaroid-img-wrap">
+            <img src="./img/Dini3.jpeg" alt="Dini 3" loading="eager">
+          </div>
+          <div class="polaroid-caption">Pretty Smile 🌷</div>
+        </div>
+
+        <div class="polaroid-card pol-4" style="--p-idx: 4; --rot: 9deg;" data-title="Birthday Girl 🎉" data-wish="Selamat ulang tahun Dini! Wish you all the best and stay happy always! 🎂✨">
+          <div class="polaroid-pin">⭐</div>
+          <div class="polaroid-img-wrap">
+            <img src="./img/Dini4.jpeg" alt="Dini 4" loading="eager">
+          </div>
+          <div class="polaroid-caption">Birthday Girl 🎉</div>
+        </div>
+      </div>
     </div>
 
     <!-- Slide 2: Pesan 1 -->
@@ -200,6 +235,23 @@
     <!-- Footer -->
     <footer class="page-footer font-small blue fixed-bottom"></footer>
   </div>
+
+    <!-- Photo Popup Modal -->
+    <div id="photoModal" class="photo-modal-overlay" aria-hidden="true">
+      <div class="photo-modal-card">
+        <div class="modal-washi-tape">🎀 Special Memory 🎀</div>
+        <span class="modal-deco-sparkle mds-left">✨</span>
+        <span class="modal-deco-sparkle mds-right">🌸</span>
+        <button id="closePhotoModal" class="photo-modal-close" aria-label="Tutup Popup">&times;</button>
+        <div class="photo-modal-img-wrap">
+          <img id="modalImg" src="" alt="Foto Dini">
+        </div>
+        <div class="photo-modal-body">
+          <h5 id="modalTitle" class="photo-modal-title"></h5>
+          <p id="modalWish" class="photo-modal-wish"></p>
+        </div>
+      </div>
+    </div>
 
     <!-- Dreamy Thick Fog / Mist Transition Portal Overlay -->
     <div id="dreamMistOverlay" class="dream-mist-overlay" aria-hidden="true">
